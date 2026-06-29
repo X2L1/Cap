@@ -10,6 +10,15 @@ final class SpeechSynthesizer: NSObject, ObservableObject {
 
     private let synth = AVSpeechSynthesizer()
 
+    /// Best installed English voice. Enhanced/premium voices (downloaded via Settings →
+    /// Accessibility → Spoken Content → Voices) sound far less robotic; we fall back to
+    /// whatever's there. Resolved once — scanning every speak() call is wasteful.
+    private static let preferredVoice: AVSpeechSynthesisVoice? = {
+        let english = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix("en") }
+        let ranked = english.sorted { $0.quality.rawValue > $1.quality.rawValue }
+        return ranked.first(where: { $0.language == "en-US" }) ?? ranked.first
+    }()
+
     override init() {
         super.init()
         synth.delegate = self
@@ -17,13 +26,15 @@ final class SpeechSynthesizer: NSObject, ObservableObject {
 
     func speak(_ text: String) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        // Mix with / route to earbuds without stomping other audio.
+        // Route to earbuds/speaker and activate the session BEFORE speaking, so the first
+        // syllable doesn't get clipped while the audio route spins up.
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers, .allowBluetoothA2DP])
         try? session.setActive(true)
 
         if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
         let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = Self.preferredVoice
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         synth.speak(utterance)
     }

@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var token: String = ""
     @State private var savedConfirmation: String?
     @State private var showTokenPath = false
+    @FocusState private var keyboardFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -59,6 +60,7 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+                        .focused($keyboardFocused)
                     Button("Save Canvas feed") { saveFeed() }
                         .disabled(feedURL.trimmingCharacters(in: .whitespaces).isEmpty)
                 } header: { Text("Canvas") } footer: {
@@ -70,7 +72,9 @@ struct SettingsView: View {
                         TextField("School domain, e.g. yourschool.instructure.com", text: $domain)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
+                            .focused($keyboardFocused)
                         SecureField("Personal access token", text: $token)
+                            .focused($keyboardFocused)
                         Button("Save token credentials") { saveToken() }
                             .disabled(domain.isEmpty || token.isEmpty)
                     }
@@ -91,6 +95,13 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Button("Done") { keyboardFocused = false }
+                    Spacer()
+                }
+            }
         }
     }
 

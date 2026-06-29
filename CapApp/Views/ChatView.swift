@@ -54,8 +54,8 @@ struct ChatView: View {
                         .disabled(viewModel.messages.isEmpty)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
                     Button("Done") { inputFocused = false }
+                    Spacer()
                 }
             }
         }
