@@ -15,13 +15,42 @@ struct SettingsView: View {
     @FocusState private var keyboardFocused: Bool
     @AppStorage("cap.briefings.enabled") private var briefingsEnabled = false
 
+    @AppStorage(HomeServerConfig.enabledKey) private var serverEnabled = false
+    @AppStorage(HomeServerConfig.endpointKey) private var serverEndpoint = ""
+    @AppStorage(HomeServerConfig.modelKey) private var serverModel = "llama3.1"
+    @State private var serverTest: String?
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
+                    Toggle("Use my home server", isOn: $serverEnabled)
+                    if serverEnabled {
+                        TextField("Endpoint, e.g. http://192.168.1.50:11434", text: $serverEndpoint)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                            .focused($keyboardFocused)
+                        TextField("Model, e.g. llama3.1", text: $serverModel)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($keyboardFocused)
+                        Button("Test connection") {
+                            Task { serverTest = await HomeServerService().isReachable() ? "Reachable ✓" : "Not reachable" }
+                        }
+                        if let serverTest {
+                            Text(serverTest).font(.caption)
+                                .foregroundStyle(serverTest.contains("✓") ? .green : .red)
+                        }
+                    }
+                } header: { Text("Brain") } footer: {
+                    Text("Send chats to an Ollama (or OpenAI-compatible) server you run on your own machine — smarter than the on-device model, and the data only goes to your hardware. Replies that used it are marked in chat. Cap falls back to on-device when it's unreachable.")
+                }
+
+                Section {
                     Toggle("Read replies aloud", isOn: $chat.speakReplies)
                 } header: { Text("Voice") } footer: {
-                    Text("Cap speaks answers through whatever earbuds or speaker is active. Tap the mic in chat to talk to it.")
+                    Text("Cap speaks answers through whatever earbuds or speaker is active. Tap the mic in chat to talk to it. For a natural voice, download a Premium voice in iOS Settings → Accessibility → Spoken Content → Voices.")
                 }
 
                 Section {

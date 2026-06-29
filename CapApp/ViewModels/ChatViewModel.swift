@@ -22,6 +22,7 @@ final class ChatViewModel: ObservableObject {
     let googleAuth: GoogleAuthService
     private let canvasService = CanvasService()
     private let googleCalendar = GoogleCalendarService()
+    private let homeServer = HomeServerService()
     private var cachedGoogleEvents: [CalendarEvent] = []
     private var cachedAssignments: [CanvasItem] = []
 
@@ -48,18 +49,49 @@ final class ChatViewModel: ObservableObject {
         isThinking = true
 
         Task {
+            // Route to the user's home server when it's enabled and actually reachable;
+            // otherwise use the on-device model. The server gets real message history, so
+            // it doesn't need the conversation replayed into the context block.
+            var useServer = false
+            if HomeServerConfig.isEnabled {
+                useServer = await homeServer.isReachable()
+            }
+            let context = await buildContext(includeHistory: !useServer)
+
             do {
-                let context = await buildContext()
-                let reply = try await modelService.send(trimmed, context: context)
-                messages.append(ChatMessage(role: .assistant, text: reply))
+                let reply: String
+                var via: String?
+                if useServer {
+                    reply = try await homeServer.send(buildServerMessages(context: context))
+                    via = "home server"
+                } else {
+                    reply = try await modelService.send(trimmed, context: context)
+                }
+                messages.append(ChatMessage(role: .assistant, text: reply, via: via))
                 if speakReplies { synthesizer.speak(reply) }
             } catch {
-                lastError = "\(error)"
-                messages.append(ChatMessage(role: .assistant, text: "Couldn't reach the on-device model: \(error.localizedDescription)"))
+                // If the server was the problem, fall back to the on-device model once.
+                if useServer, let fallback = try? await modelService.send(trimmed, context: context) {
+                    messages.append(ChatMessage(role: .assistant, text: fallback))
+                } else {
+                    lastError = "\(error)"
+                    messages.append(ChatMessage(role: .assistant, text: "Couldn't reach the model: \(error.localizedDescription)"))
+                }
             }
             LocalStore.shared.saveMessages(messages)
             isThinking = false
         }
+    }
+
+    /// Build the OpenAI-style message array for the home server: persona + data context as
+    /// system messages, then recent turns (the current user message is already the last one).
+    private func buildServerMessages(context: String) -> [HomeServerService.Message] {
+        var msgs: [HomeServerService.Message] = [.init(role: "system", content: Persona.systemInstructions)]
+        if !context.isEmpty { msgs.append(.init(role: "system", content: context)) }
+        for message in messages.suffix(12) {
+            msgs.append(.init(role: message.role == .user ? "user" : "assistant", content: message.text))
+        }
+        return msgs
     }
 
     func clearHistory() {
@@ -74,6 +106,13 @@ final class ChatViewModel: ObservableObject {
     /// up yet. This is Phase 0's stand-in for real tool use, which comes later.
     private func buildContext(includeHistory: Bool = true) async -> String {
         var lines: [String] = []
+
+        // Compute any arithmetic in the latest user message exactly, so the model doesn't
+        // have to (small models are unreliable at it).
+        if let lastUser = messages.last(where: { $0.role == .user }),
+           let hint = ArithmeticHelper.computedHint(for: lastUser.text) {
+            lines.append("Arithmetic (computed exactly — state this answer): \(hint)")
+        }
 
         // On the first turn after a relaunch, hand the model a transcript of the recent
         // conversation so it has continuity the empty session would otherwise lack.

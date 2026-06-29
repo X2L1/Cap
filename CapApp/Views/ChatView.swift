@@ -131,20 +131,27 @@ struct ChatView: View {
 
     @ViewBuilder
     private func messageRow(_ message: ChatMessage) -> some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 40) }
-            Text(message.text)
-                .foregroundStyle(message.role == .user ? .white : .primary)
-                .padding(.horizontal, 14).padding(.vertical, 10)
-                .background {
-                    if message.role == .user {
-                        Theme.userBubble
-                    } else {
-                        Theme.assistantBubble
+        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 2) {
+            HStack {
+                if message.role == .user { Spacer(minLength: 40) }
+                Text(message.text)
+                    .foregroundStyle(message.role == .user ? .white : .primary)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background {
+                        if message.role == .user {
+                            Theme.userBubble
+                        } else {
+                            Theme.assistantBubble
+                        }
                     }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: Theme.corner))
-            if message.role == .assistant { Spacer(minLength: 40) }
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.corner))
+                if message.role == .assistant { Spacer(minLength: 40) }
+            }
+            if let via = message.via {
+                Label("via \(via)", systemImage: "arrow.up.right")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .padding(.leading, 6)
+            }
         }
     }
 }

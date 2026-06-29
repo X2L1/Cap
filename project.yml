@@ -24,6 +24,9 @@ targets:
           - CFBundleURLName: com.xavier.cap.google
             CFBundleURLSchemes:
               - com.googleusercontent.apps.407694880805-l073efr767eeqqangm60eosii8lukal1
+        NSLocalNetworkUsageDescription: "Cap connects to an AI server you run on your own local network, so your chats stay on your hardware."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.xavier.cap
