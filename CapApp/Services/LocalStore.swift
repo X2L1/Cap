@@ -8,10 +8,12 @@ final class LocalStore {
     static let shared = LocalStore()
 
     private let fileURL: URL
+    private let chatURL: URL
 
     private init() {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         fileURL = dir.appendingPathComponent("cap_tasks.json")
+        chatURL = dir.appendingPathComponent("cap_chat.json")
     }
 
     func loadTasks() -> [CapTask] {
@@ -40,5 +42,25 @@ final class LocalStore {
             tasks[idx].isDone.toggle()
             saveTasks(tasks)
         }
+    }
+
+    // MARK: - Chat history
+
+    func loadMessages() -> [ChatMessage] {
+        guard let data = try? Data(contentsOf: chatURL) else { return [] }
+        return (try? JSONDecoder().decode([ChatMessage].self, from: data)) ?? []
+    }
+
+    /// Persist the chat log so the conversation survives an app relaunch. Capped to the
+    /// most recent `keep` messages so the file (and the history we replay into the model)
+    /// stays bounded.
+    func saveMessages(_ messages: [ChatMessage], keep: Int = 50) {
+        let trimmed = Array(messages.suffix(keep))
+        guard let data = try? JSONEncoder().encode(trimmed) else { return }
+        try? data.write(to: chatURL, options: .atomic)
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.complete],
+            ofItemAtPath: chatURL.path
+        )
     }
 }

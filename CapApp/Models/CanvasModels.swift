@@ -25,3 +25,12 @@ struct CanvasCourseDetail: Codable {
     let name: String?
     let syllabus_body: String?
 }
+
+/// Source-agnostic assignment/event used by the UI and the chat context builder, so the
+/// rest of the app doesn't care whether it came from the REST API (token) or the ICS
+/// calendar feed (the TAMU-friendly path that needs no token).
+struct CanvasItem: Identifiable {
+    let id: String
+    let name: String
+    let dueDate: Date?
+}

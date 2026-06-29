@@ -1,13 +1,13 @@
 import Foundation
 
-struct ChatMessage: Identifiable {
-    enum Role {
+struct ChatMessage: Identifiable, Codable {
+    enum Role: String, Codable {
         case user
         case assistant
     }
 
-    let id = UUID()
+    var id = UUID()
     let role: Role
     let text: String
-    let timestamp = Date()
+    var timestamp = Date()
 }

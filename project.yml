@@ -15,6 +15,9 @@ targets:
         UILaunchScreen: {}
         NSCalendarsFullAccessUsageDescription: "Cap reads your calendar to tell you what's coming up and help you plan your day."
         NSCalendarsUsageDescription: "Cap reads your calendar to tell you what's coming up and help you plan your day."
+        NSContactsUsageDescription: "Cap reads contact birthdays so it can remind you. This never leaves your device."
+        NSMicrophoneUsageDescription: "Cap uses the microphone so you can talk to it instead of typing."
+        NSSpeechRecognitionUsageDescription: "Cap transcribes your speech on-device so you can talk to it hands-free."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.xavier.cap
