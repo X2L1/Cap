@@ -18,6 +18,7 @@ targets:
         NSContactsUsageDescription: "Cap reads contact birthdays so it can remind you. This never leaves your device."
         NSMicrophoneUsageDescription: "Cap uses the microphone so you can talk to it instead of typing."
         NSSpeechRecognitionUsageDescription: "Cap transcribes your speech on-device so you can talk to it hands-free."
+        NSLocationWhenInUseUsageDescription: "Cap uses your location to estimate when you need to leave to arrive on time."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.xavier.cap

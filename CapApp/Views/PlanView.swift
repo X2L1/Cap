@@ -3,6 +3,7 @@ import SwiftUI
 struct PlanView: View {
     @ObservedObject var chat: ChatViewModel
     @ObservedObject var eventKitService: EventKitService
+    @ObservedObject var locationService: LocationService
 
     @State private var planItems: [PlanItem] = []
     @State private var weights: [String: Int] = LocalStore.shared.loadCourseWeights()
@@ -73,7 +74,12 @@ struct PlanView: View {
                     } label: {
                         Label("Add event to Apple Calendar", systemImage: "calendar.badge.plus")
                     }
-                } header: { Text("Calendar") }
+                    NavigationLink {
+                        LeaveByView(locationService: locationService)
+                    } label: {
+                        Label("When do I need to leave?", systemImage: "location")
+                    }
+                } header: { Text("Calendar & places") }
             }
             .navigationTitle("Plan")
             .task { await reload() }

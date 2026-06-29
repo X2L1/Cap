@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var eventKitService: EventKitService
     @StateObject private var contactsService: ContactsService
+    @StateObject private var locationService = LocationService()
     @StateObject private var chatViewModel: ChatViewModel
     @ObservedObject private var notifications = NotificationService.shared
     @State private var tab = 0
@@ -23,7 +24,7 @@ struct ContentView: View {
                 .tag(0)
                 .tabItem { Label("Cap", systemImage: "bubble.left.and.text.bubble.right") }
 
-            PlanView(chat: chatViewModel, eventKitService: eventKitService)
+            PlanView(chat: chatViewModel, eventKitService: eventKitService, locationService: locationService)
                 .tag(1)
                 .tabItem { Label("Plan", systemImage: "list.bullet.clipboard") }
 
