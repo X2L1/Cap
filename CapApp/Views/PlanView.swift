@@ -79,6 +79,11 @@ struct PlanView: View {
                     } label: {
                         Label("When do I need to leave?", systemImage: "location")
                     }
+                    NavigationLink {
+                        PlacesView(locationService: locationService)
+                    } label: {
+                        Label("Key places & arrival alerts", systemImage: "mappin.and.ellipse")
+                    }
                 } header: { Text("Calendar & places") }
             }
             .navigationTitle("Plan")

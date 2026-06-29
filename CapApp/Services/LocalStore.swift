@@ -10,12 +10,14 @@ final class LocalStore {
     private let fileURL: URL
     private let chatURL: URL
     private let weightsURL: URL
+    private let placesURL: URL
 
     private init() {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         fileURL = dir.appendingPathComponent("cap_tasks.json")
         chatURL = dir.appendingPathComponent("cap_chat.json")
         weightsURL = dir.appendingPathComponent("cap_course_weights.json")
+        placesURL = dir.appendingPathComponent("cap_places.json")
     }
 
     func loadTasks() -> [CapTask] {
@@ -77,5 +79,17 @@ final class LocalStore {
     func saveCourseWeights(_ weights: [String: Int]) {
         guard let data = try? JSONEncoder().encode(weights) else { return }
         try? data.write(to: weightsURL, options: .atomic)
+    }
+
+    // MARK: - Geofenced places
+
+    func loadPlaces() -> [Place] {
+        guard let data = try? Data(contentsOf: placesURL) else { return [] }
+        return (try? JSONDecoder().decode([Place].self, from: data)) ?? []
+    }
+
+    func savePlaces(_ places: [Place]) {
+        guard let data = try? JSONEncoder().encode(places) else { return }
+        try? data.write(to: placesURL, options: .atomic)
     }
 }

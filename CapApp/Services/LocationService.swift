@@ -24,8 +24,44 @@ final class LocationService: NSObject, ObservableObject {
         manager.requestWhenInUseAuthorization()
     }
 
+    /// Geofencing relaunches the app in the background, which needs "Always" authorization.
+    func requestAlwaysAccess() {
+        manager.requestAlwaysAuthorization()
+    }
+
     var hasAccess: Bool {
         authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
+    }
+
+    var hasAlwaysAccess: Bool {
+        authorizationStatus == .authorizedAlways
+    }
+
+    // MARK: - Geofencing
+
+    /// Replace the monitored set with the user's saved places (capped at iOS's 20-region limit).
+    func startMonitoring(_ places: [Place]) {
+        guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else { return }
+        for region in manager.monitoredRegions { manager.stopMonitoring(for: region) }
+        for place in places.prefix(20) {
+            let region = CLCircularRegion(
+                center: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude),
+                radius: place.radius,
+                identifier: place.id.uuidString
+            )
+            region.notifyOnEntry = true
+            region.notifyOnExit = true
+            manager.startMonitoring(for: region)
+        }
+    }
+
+    func stopAllMonitoring() {
+        for region in manager.monitoredRegions { manager.stopMonitoring(for: region) }
+    }
+
+    /// Resolve a region identifier back to the place's display name.
+    private func placeName(for identifier: String) -> String? {
+        LocalStore.shared.loadPlaces().first { $0.id.uuidString == identifier }?.name
     }
 
     /// One-shot current location.
@@ -82,6 +118,20 @@ extension LocationService: CLLocationManagerDelegate {
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in self.resumeContinuations(with: nil) }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        Task { @MainActor in
+            let name = self.placeName(for: region.identifier) ?? "a saved place"
+            NotificationService.shared.postNow(title: "Arrived at \(name)", body: "You're here.")
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        Task { @MainActor in
+            let name = self.placeName(for: region.identifier) ?? "a saved place"
+            NotificationService.shared.postNow(title: "Left \(name)", body: "Heading out.")
+        }
     }
 
     private func resumeContinuations(with location: CLLocation?) {

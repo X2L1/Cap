@@ -19,6 +19,7 @@ targets:
         NSMicrophoneUsageDescription: "Cap uses the microphone so you can talk to it instead of typing."
         NSSpeechRecognitionUsageDescription: "Cap transcribes your speech on-device so you can talk to it hands-free."
         NSLocationWhenInUseUsageDescription: "Cap uses your location to estimate when you need to leave to arrive on time."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Cap watches a few key places (like your dorm or library) to alert you on arrival and departure. Location is used only for these on-device geofences."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.xavier.cap
