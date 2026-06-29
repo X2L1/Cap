@@ -4,6 +4,7 @@ struct ContentView: View {
     @StateObject private var eventKitService: EventKitService
     @StateObject private var contactsService: ContactsService
     @StateObject private var locationService = LocationService()
+    @StateObject private var googleAuth: GoogleAuthService
     @StateObject private var chatViewModel: ChatViewModel
     @ObservedObject private var notifications = NotificationService.shared
     @State private var tab = 0
@@ -11,10 +12,12 @@ struct ContentView: View {
     init() {
         let eventKit = EventKitService()
         let contacts = ContactsService()
+        let google = GoogleAuthService()
         _eventKitService = StateObject(wrappedValue: eventKit)
         _contactsService = StateObject(wrappedValue: contacts)
+        _googleAuth = StateObject(wrappedValue: google)
         _chatViewModel = StateObject(
-            wrappedValue: ChatViewModel(eventKitService: eventKit, contactsService: contacts)
+            wrappedValue: ChatViewModel(eventKitService: eventKit, contactsService: contacts, googleAuth: google)
         )
     }
 
@@ -32,8 +35,13 @@ struct ContentView: View {
                 .tag(2)
                 .tabItem { Label("Today", systemImage: "calendar") }
 
-            SettingsView(eventKitService: eventKitService, contactsService: contactsService, chat: chatViewModel)
+            MailView(chat: chatViewModel)
                 .tag(3)
+                .tabItem { Label("Mail", systemImage: "envelope") }
+
+            SettingsView(eventKitService: eventKitService, contactsService: contactsService,
+                         chat: chatViewModel, googleAuth: googleAuth)
+                .tag(4)
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .tint(Theme.accent)

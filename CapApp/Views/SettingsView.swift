@@ -4,6 +4,8 @@ struct SettingsView: View {
     @ObservedObject var eventKitService: EventKitService
     @ObservedObject var contactsService: ContactsService
     @ObservedObject var chat: ChatViewModel
+    @ObservedObject var googleAuth: GoogleAuthService
+    @State private var connecting = false
 
     @State private var feedURL: String = ""
     @State private var domain: String = ""
@@ -74,6 +76,33 @@ struct SettingsView: View {
                     }
                 } header: { Text("Contacts") } footer: {
                     Text("Used only to read birthdays so Cap can remind you. Nothing leaves the phone.")
+                }
+
+                Section {
+                    if googleAuth.isConnected {
+                        LabeledContent("Status") { Text("Connected").foregroundStyle(.green) }
+                        Button("Disconnect", role: .destructive) {
+                            googleAuth.signOut()
+                            Task { await chat.refreshGoogleEventsCache() }
+                        }
+                    } else {
+                        Button {
+                            Task {
+                                connecting = true
+                                try? await googleAuth.signIn()
+                                await chat.refreshGoogleEventsCache()
+                                connecting = false
+                            }
+                        } label: {
+                            HStack {
+                                Text(connecting ? "Connecting…" : "Connect Google account")
+                                if connecting { Spacer(); ProgressView() }
+                            }
+                        }
+                        .disabled(connecting)
+                    }
+                } header: { Text("Google") } footer: {
+                    Text("Read-only access to your Google Calendar and Gmail. Cap can draft replies but never sends. Tokens are stored on this device only.")
                 }
 
                 Section {

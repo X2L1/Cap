@@ -20,6 +20,10 @@ targets:
         NSSpeechRecognitionUsageDescription: "Cap transcribes your speech on-device so you can talk to it hands-free."
         NSLocationWhenInUseUsageDescription: "Cap uses your location to estimate when you need to leave to arrive on time."
         NSLocationAlwaysAndWhenInUseUsageDescription: "Cap watches a few key places (like your dorm or library) to alert you on arrival and departure. Location is used only for these on-device geofences."
+        CFBundleURLTypes:
+          - CFBundleURLName: com.xavier.cap.google
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.407694880805-l073efr767eeqqangm60eosii8lukal1
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.xavier.cap

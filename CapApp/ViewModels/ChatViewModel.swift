@@ -19,7 +19,10 @@ final class ChatViewModel: ObservableObject {
     private let modelService = FoundationModelsService()
     let eventKitService: EventKitService
     let contactsService: ContactsService
+    let googleAuth: GoogleAuthService
     private let canvasService = CanvasService()
+    private let googleCalendar = GoogleCalendarService()
+    private var cachedGoogleEvents: [CalendarEvent] = []
     private var cachedAssignments: [CanvasItem] = []
 
     /// Read-only view of the cached Canvas items for the Plan tab.
@@ -30,9 +33,10 @@ final class ChatViewModel: ObservableObject {
     /// where it left off; later turns rely on the live session's own transcript.
     private var hasReplayedHistory = false
 
-    init(eventKitService: EventKitService, contactsService: ContactsService) {
+    init(eventKitService: EventKitService, contactsService: ContactsService, googleAuth: GoogleAuthService) {
         self.eventKitService = eventKitService
         self.contactsService = contactsService
+        self.googleAuth = googleAuth
         messages = LocalStore.shared.loadMessages()
     }
 
@@ -88,9 +92,21 @@ final class ChatViewModel: ObservableObject {
 
         let events = eventKitService.upcomingEvents(daysAhead: 7)
         if !events.isEmpty {
-            lines.append("Upcoming calendar events (next 7 days):")
+            lines.append("Upcoming Apple Calendar events (next 7 days):")
             for event in events.prefix(15) {
                 lines.append("- \(event.title) — \(event.start.formatted(date: .abbreviated, time: .shortened))")
+            }
+        }
+
+        if googleAuth.isConnected {
+            if cachedGoogleEvents.isEmpty {
+                cachedGoogleEvents = await googleCalendar.upcomingEvents(auth: googleAuth, daysAhead: 7)
+            }
+            if !cachedGoogleEvents.isEmpty {
+                lines.append("Upcoming Google Calendar events (next 7 days):")
+                for event in cachedGoogleEvents.prefix(15) {
+                    lines.append("- \(event.title) — \(event.start.formatted(date: .abbreviated, time: .shortened))")
+                }
             }
         }
 
@@ -131,6 +147,25 @@ final class ChatViewModel: ObservableObject {
 
     func refreshAssignmentsCache() async {
         cachedAssignments = (try? await canvasService.fetchAllUpcomingItems()) ?? []
+    }
+
+    func refreshGoogleEventsCache() async {
+        cachedGoogleEvents = googleAuth.isConnected
+            ? await googleCalendar.upcomingEvents(auth: googleAuth, daysAhead: 7)
+            : []
+    }
+
+    /// Draft a reply suggestion for an email. Read-only by design — this returns text for
+    /// the user to copy/send themselves; Cap never sends anything.
+    func draftReply(to email: GmailMessageMeta) async -> String {
+        let context = """
+        Draft a brief, friendly reply to this email. Return only the reply body — no preamble.
+        From: \(email.from)
+        Subject: \(email.subject)
+        Preview: \(email.snippet)
+        """
+        return (try? await modelService.oneShot("Write the reply.", context: context))
+            ?? "Couldn't reach the on-device model."
     }
 
     /// One-shot triage briefing from the on-device model, using the same context block as
