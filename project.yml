@@ -10,6 +10,7 @@ targets:
     sources:
       - CapApp
     info:
+      path: CapApp/Info.plist
       properties:
         UILaunchScreen: {}
         NSCalendarsFullAccessUsageDescription: "Cap reads your calendar to tell you what's coming up and help you plan your day."
