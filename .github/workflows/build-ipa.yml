@@ -12,7 +12,10 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    # macos-15 defaults to Xcode 16.4 (iOS SDK ceiling 18.5) — no FoundationModels
+    # framework exists at that SDK level. macos-26 (GA since Feb 2026) defaults to
+    # Xcode 26.4.1, which has it.
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
