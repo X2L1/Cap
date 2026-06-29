@@ -10,13 +10,21 @@ final class SpeechSynthesizer: NSObject, ObservableObject {
 
     private let synth = AVSpeechSynthesizer()
 
-    /// Best installed English voice. Enhanced/premium voices (downloaded via Settings →
-    /// Accessibility → Spoken Content → Voices) sound far less robotic; we fall back to
-    /// whatever's there. Resolved once — scanning every speak() call is wasteful.
+    /// Best installed English voice. Premium > enhanced > default in quality, and a few
+    /// named voices (Ava, Zoe, Evan…) are markedly more natural than the rest — so we
+    /// prefer those when present. Premium/enhanced voices have to be downloaded by the user
+    /// (Settings → Accessibility → Spoken Content → Voices); without one, only the robotic
+    /// default exists, which is the real ceiling on how natural this can sound.
     private static let preferredVoice: AVSpeechSynthesisVoice? = {
         let english = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix("en") }
-        let ranked = english.sorted { $0.quality.rawValue > $1.quality.rawValue }
-        return ranked.first(where: { $0.language == "en-US" }) ?? ranked.first
+        let niceNames = ["ava", "zoe", "evan", "nathan", "joelle", "samantha"]
+        func rank(_ v: AVSpeechSynthesisVoice) -> Int {
+            var score = v.quality.rawValue * 10                       // premium(3) > enhanced(2) > default(1)
+            if v.language == "en-US" { score += 3 }
+            if niceNames.contains(where: { v.name.lowercased().contains($0) }) { score += 5 }
+            return score
+        }
+        return english.max { rank($0) < rank($1) }
     }()
 
     override init() {
@@ -35,7 +43,10 @@ final class SpeechSynthesizer: NSObject, ObservableObject {
         if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = Self.preferredVoice
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        // A hair slower than default reads more like a person than a GPS unit.
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.96
+        utterance.pitchMultiplier = 1.0
+        utterance.preUtteranceDelay = 0.05
         synth.speak(utterance)
     }
 

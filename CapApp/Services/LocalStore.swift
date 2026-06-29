@@ -78,7 +78,7 @@ final class LocalStore {
 
     func saveCourseWeights(_ weights: [String: Int]) {
         guard let data = try? JSONEncoder().encode(weights) else { return }
-        try? data.write(to: weightsURL, options: .atomic)
+        write(data, to: weightsURL)
     }
 
     // MARK: - Geofenced places
@@ -90,6 +90,17 @@ final class LocalStore {
 
     func savePlaces(_ places: [Place]) {
         guard let data = try? JSONEncoder().encode(places) else { return }
-        try? data.write(to: placesURL, options: .atomic)
+        write(data, to: placesURL)
+    }
+
+    /// Atomic write + complete file protection (encrypted at rest, unreadable while the
+    /// device is locked). Used for everything Cap persists so the protection tier is
+    /// consistent across tasks, chat, course weights, and places.
+    private func write(_ data: Data, to url: URL) {
+        try? data.write(to: url, options: .atomic)
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.complete],
+            ofItemAtPath: url.path
+        )
     }
 }
