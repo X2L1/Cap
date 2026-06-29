@@ -26,6 +26,15 @@ actor FoundationModelsService {
         return response.content
     }
 
+    /// One-off prompt on a throwaway session — used for briefings/triage so they don't
+    /// pollute the ongoing chat conversation's turn history.
+    func oneShot(_ prompt: String, context: String) async throws -> String {
+        try checkAvailability()
+        let session = LanguageModelSession(instructions: Persona.systemInstructions)
+        let full = context.isEmpty ? prompt : "\(context)\n\nUser: \(prompt)"
+        return try await session.respond(to: full).content
+    }
+
     /// Drop the session to start a fresh conversation (clears the model's turn history,
     /// not Cap's own chat log in the UI).
     func resetConversation() {

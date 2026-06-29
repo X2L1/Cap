@@ -22,6 +22,9 @@ final class ChatViewModel: ObservableObject {
     private let canvasService = CanvasService()
     private var cachedAssignments: [CanvasItem] = []
 
+    /// Read-only view of the cached Canvas items for the Plan tab.
+    var canvasItems: [CanvasItem] { cachedAssignments }
+
     /// The on-device model session is empty on a fresh launch. The first message after
     /// launch replays the persisted chat log into the context block so Cap picks up
     /// where it left off; later turns rely on the live session's own transcript.
@@ -65,12 +68,12 @@ final class ChatViewModel: ObservableObject {
     /// Builds a compact text block of the user's own calendar + assignment data so the
     /// model can answer "what's due" / "what's on my plate" without tool-calling wired
     /// up yet. This is Phase 0's stand-in for real tool use, which comes later.
-    private func buildContext() async -> String {
+    private func buildContext(includeHistory: Bool = true) async -> String {
         var lines: [String] = []
 
         // On the first turn after a relaunch, hand the model a transcript of the recent
         // conversation so it has continuity the empty session would otherwise lack.
-        if !hasReplayedHistory {
+        if includeHistory && !hasReplayedHistory {
             hasReplayedHistory = true
             let prior = messages.dropLast() // exclude the message we're about to answer
             if !prior.isEmpty {
@@ -101,6 +104,15 @@ final class ChatViewModel: ObservableObject {
                     let due = assignment.dueDate.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "no due date set"
                     lines.append("- \(assignment.name) — due \(due)")
                 }
+
+                // Grade-impact signal the user set per course, so triage isn't blind to weight.
+                let weights = LocalStore.shared.loadCourseWeights()
+                if !weights.isEmpty {
+                    let labels = ["1": "low", "2": "low", "3": "medium", "4": "high", "5": "very high"]
+                    let described = weights.sorted { $0.key < $1.key }
+                        .map { "\($0.key) = \(labels[String($0.value)] ?? "medium")" }
+                    lines.append("Course importance the user set (weight these in triage): " + described.joined(separator: ", "))
+                }
             }
         }
 
@@ -119,5 +131,16 @@ final class ChatViewModel: ObservableObject {
 
     func refreshAssignmentsCache() async {
         cachedAssignments = (try? await canvasService.fetchAllUpcomingItems()) ?? []
+    }
+
+    /// One-shot triage briefing from the on-device model, using the same context block as
+    /// chat. Runs on a throwaway session so it doesn't show up in the conversation.
+    func generateBriefing() async -> String {
+        if cachedAssignments.isEmpty { await refreshAssignmentsCache() }
+        let context = await buildContext(includeHistory: false)
+        let prompt = "Give me a short, friendly briefing of what matters today and what to tackle first. " +
+            "Lead with the most time-sensitive thing. Keep it to a few sentences."
+        return (try? await modelService.oneShot(prompt, context: context))
+            ?? "Couldn't reach the on-device model for a briefing."
     }
 }

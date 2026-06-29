@@ -9,11 +9,13 @@ final class LocalStore {
 
     private let fileURL: URL
     private let chatURL: URL
+    private let weightsURL: URL
 
     private init() {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         fileURL = dir.appendingPathComponent("cap_tasks.json")
         chatURL = dir.appendingPathComponent("cap_chat.json")
+        weightsURL = dir.appendingPathComponent("cap_course_weights.json")
     }
 
     func loadTasks() -> [CapTask] {
@@ -62,5 +64,18 @@ final class LocalStore {
             [.protectionKey: FileProtectionType.complete],
             ofItemAtPath: chatURL.path
         )
+    }
+
+    // MARK: - Course importance (grade-impact signal the ICS feed can't give us)
+
+    /// Maps a course code (e.g. "HIST 105") to an importance 1...5 the user has set.
+    func loadCourseWeights() -> [String: Int] {
+        guard let data = try? Data(contentsOf: weightsURL) else { return [:] }
+        return (try? JSONDecoder().decode([String: Int].self, from: data)) ?? [:]
+    }
+
+    func saveCourseWeights(_ weights: [String: Int]) {
+        guard let data = try? JSONEncoder().encode(weights) else { return }
+        try? data.write(to: weightsURL, options: .atomic)
     }
 }

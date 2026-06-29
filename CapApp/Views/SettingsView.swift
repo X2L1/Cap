@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var savedConfirmation: String?
     @State private var showTokenPath = false
     @FocusState private var keyboardFocused: Bool
+    @AppStorage("cap.briefings.enabled") private var briefingsEnabled = false
 
     var body: some View {
         NavigationStack {
@@ -19,6 +20,26 @@ struct SettingsView: View {
                     Toggle("Read replies aloud", isOn: $chat.speakReplies)
                 } header: { Text("Voice") } footer: {
                     Text("Cap speaks answers through whatever earbuds or speaker is active. Tap the mic in chat to talk to it.")
+                }
+
+                Section {
+                    Toggle("Daily morning & evening briefings", isOn: $briefingsEnabled)
+                        .onChange(of: briefingsEnabled) { _, on in
+                            Task {
+                                if on {
+                                    let granted = await NotificationService.shared.requestAuthorization()
+                                    if granted {
+                                        NotificationService.shared.scheduleBriefings()
+                                    } else {
+                                        briefingsEnabled = false
+                                    }
+                                } else {
+                                    NotificationService.shared.cancelBriefings()
+                                }
+                            }
+                        }
+                } header: { Text("Briefings") } footer: {
+                    Text("A 7:30am and 8:00pm reminder that opens straight into your Plan. Scheduled locally — no background process.")
                 }
 
                 Section {

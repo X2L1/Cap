@@ -55,6 +55,25 @@ final class EventKitService: ObservableObject {
         if enabled { hiddenCalendarIDs.remove(id) } else { hiddenCalendarIDs.insert(id) }
     }
 
+    /// Write-back: create an event in the user's default calendar. Returns false if access
+    /// isn't granted or there's no default calendar to write to.
+    @discardableResult
+    func createEvent(title: String, start: Date, end: Date, notes: String?) -> Bool {
+        guard hasAccess, let calendar = store.defaultCalendarForNewEvents else { return false }
+        let event = EKEvent(eventStore: store)
+        event.title = title
+        event.startDate = start
+        event.endDate = end
+        event.notes = notes
+        event.calendar = calendar
+        do {
+            try store.save(event, span: .thisEvent)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     /// Synchronous on purpose — EKEventStore's event fetch is local/fast once access
     /// is granted. Honors the user's hidden-calendar choices.
     func upcomingEvents(daysAhead: Int = 7) -> [CalendarEvent] {
