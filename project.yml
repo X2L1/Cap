@@ -1,0 +1,32 @@
+name: Cap
+options:
+  bundleIdPrefix: com.xavier.cap
+  deploymentTarget:
+    iOS: "26.0"
+targets:
+  Cap:
+    type: application
+    platform: iOS
+    sources:
+      - CapApp
+    info:
+      properties:
+        UILaunchScreen: {}
+        NSCalendarsFullAccessUsageDescription: "Cap reads your calendar to tell you what's coming up and help you plan your day."
+        NSCalendarsUsageDescription: "Cap reads your calendar to tell you what's coming up and help you plan your day."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xavier.cap
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        # DEVELOPMENT_TEAM: "YOUR_TEAM_ID"   # uncomment and fill in to silence the signing prompt
+schemes:
+  Cap:
+    build:
+      targets:
+        Cap: all
+    run:
+      config: Debug
+    archive:
+      config: Release
