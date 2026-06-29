@@ -159,12 +159,12 @@ final class GoogleAuthService: NSObject, ObservableObject {
 }
 
 extension GoogleAuthService: ASWebAuthenticationPresentationContextProviding {
-    nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        MainActor.assumeIsolated {
-            let scene = UIApplication.shared.connectedScenes
-                .first { $0.activationState == .foregroundActive } as? UIWindowScene
-            return scene?.keyWindow ?? ASPresentationAnchor()
-        }
+    // Main-actor isolated (the class is @MainActor); the system invokes this on the main
+    // thread, so reading UIApplication.shared here is safe.
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        let scene = UIApplication.shared.connectedScenes
+            .first { $0.activationState == .foregroundActive } as? UIWindowScene
+        return scene?.keyWindow ?? ASPresentationAnchor()
     }
 }
 
